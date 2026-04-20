@@ -1,0 +1,31 @@
+# Acceptance scenarios for Demo-1. Consumed by the T-18 E2E test.
+scenarios:
+  - id: forward
+    prompt: "前に進んで"
+    expected_tool: topic_publisher_tool
+    expected_topic: "/turtle1/cmd_vel"
+    expected_payload_contains:
+      linear:
+        x_gt: 0.0
+    observe_topic: "/turtle1/pose"
+    observe_field: x
+    observe_delta_min: 0.3
+
+  - id: stop
+    prompt: "止まって"
+    expected_tool: topic_publisher_tool
+    expected_topic: "/turtle1/cmd_vel"
+    expected_payload_equals:
+      linear: {x: 0.0, y: 0.0, z: 0.0}
+      angular: {x: 0.0, y: 0.0, z: 0.0}
+
+  - id: turn_right
+    prompt: "右に回って"
+    expected_tool: topic_publisher_tool
+    expected_topic: "/turtle1/cmd_vel"
+    expected_payload_contains:
+      angular:
+        z_lt: 0.0
+    observe_topic: "/turtle1/pose"
+    observe_field: theta
+    observe_delta_max: -0.5

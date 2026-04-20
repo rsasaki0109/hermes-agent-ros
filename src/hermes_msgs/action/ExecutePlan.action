@@ -1,0 +1,15 @@
+# Planner -> Executor: run a list of ToolCalls in order.
+hermes_msgs/ToolCall[] calls
+string plan_id
+float32 max_duration_sec
+---
+uint8 STATUS_OK=0
+uint8 STATUS_ABORTED=1
+uint8 STATUS_TIMEOUT=2
+uint8 STATUS_SAFETY_BLOCKED=3
+
+hermes_msgs/ToolResult[] results
+uint8 status
+---
+hermes_msgs/ToolCall current_call
+float32 progress

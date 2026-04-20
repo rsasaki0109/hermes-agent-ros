@@ -1,0 +1,8 @@
+# User-facing single-shot query to the agent.
+string prompt
+string session_id
+string[] allowed_tools
+---
+string reply
+hermes_msgs/ToolCall[] executed_calls
+bool ok

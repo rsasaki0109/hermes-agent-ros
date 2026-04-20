@@ -1,0 +1,6 @@
+# Placeholder — filled in during T-04.
+enabled:
+  - topic_publisher_tool
+  - topic_subscriber_tool
+  - service_call_tool
+  - action_client_tool

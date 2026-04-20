@@ -1,0 +1,11 @@
+# Placeholder — filled in during T-08 / T-16.
+# See docs/interfaces.md for the full schema.
+topic_whitelist:
+  - "^/turtle1/cmd_vel$"
+  - "^/cmd_vel$"
+service_allowlist: []
+action_allowlist: []
+cmd_vel_limits:
+  linear_x_abs_max: 0.5
+  angular_z_abs_max: 1.0
+duration_sec_max: 10.0
