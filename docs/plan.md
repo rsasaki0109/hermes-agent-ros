@@ -110,6 +110,10 @@ effort there in v1.
 
 ### 3.2 New tasks (Cursor picks these up)
 
+**Done in-tree:** T-21–T-25 core path (Ollama runtime assumed on host, `OllamaClient`,
+launch `llm:=ollama`, `experiments.md` log). Remaining value is mostly **T-26** /
+optional **T-23** / **T-27**.
+
 | ID | Task | Unblocks |
 |---|---|---|
 | T-21 | Pick and install a local LLM runtime (§4) | everything below |
