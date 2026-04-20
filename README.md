@@ -32,6 +32,16 @@ ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=mock
 ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
 ```
 
+With a local [Ollama](https://ollama.com/) daemon and a pulled tool-capable model
+(e.g. `ollama pull qwen2.5:7b-instruct`), run the same demo against the real LLM:
+
+```bash
+export HERMES_OLLAMA_MODEL=qwen2.5:7b-instruct   # optional if you use this default
+ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=ollama
+# Slow local models: raise HTTP timeout (seconds), e.g. ollama_timeout_sec:=240.0
+ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
+```
+
 See `examples/turtlebot_demo/README.md` for the demo.
 
 For picking up this codebase (e.g. in Cursor), start with
@@ -48,6 +58,6 @@ colcon test --event-handlers console_direct+ --return-code-on-test-failure
 colcon test-result --verbose
 ```
 
-Current suite: 59 tests (30 in hermes_tools, 29 in hermes_agent) covering
+Current suite: 62 tests (30 in hermes_tools, 32 in hermes_agent) covering
 SafetyFilter, MockClient, ShortTermMemory/ToolLog, all four tool adapters
 against real rclpy, and three turtlebot_demo scenarios end-to-end.

@@ -5,6 +5,46 @@ experiment, newest at the top.
 
 ---
 
+## 2026-04-21 — Ollama integration smoke (T-22 wiring), `qwen3:4b`
+
+**Commit:** (post `OllamaClient` + launch `llm:=ollama`; see git log)
+**LLM runtime:** Ollama HTTP at `http://127.0.0.1:11434`
+**Model tag:** `qwen3:4b` via `HERMES_OLLAMA_MODEL` (machine default; not the
+plan’s `qwen2.5:7b-instruct` pin)
+**Stack:** `ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=ollama`
+with `ROS_DOMAIN_ID=224` to avoid cross-talk with unrelated nodes on the host.
+
+### 確認済み事実
+
+- `GET /api/tags` returned a model list including `qwen3:4b`.
+- `OllamaClient` unit tests (mocked HTTP) pass under `colcon test`; full suite
+  **62** tests green (`hermes_tools` 30 + `hermes_agent` 32).
+- With default client timeout **30 s**, `ros2 service call /hermes/ask ...`
+  returned `reply='Ollama error: timed out'`, `executed_calls=[]`, `ok=True`
+  (no tool call path — LLM returned an error string only).
+- Direct `curl` to `/api/chat` with the same model showed **no response body
+  within 180 s** in one trial (connection stall / inference not completing in
+  that window). **Inference:** Ollama or the loaded model was not producing
+  timely completions on this host during the measurement; not a ROS-side
+  finding.
+
+### 未確認 / 要確認
+
+- End-to-end turtle motion with a **live** tool call from Ollama (forward /
+  stop / turn_right) once `/api/chat` returns within timeout.
+- Repeat with `qwen2.5:7b-instruct` (or another tool-stable model) and, if
+  needed, `ollama_timeout_sec` above 120 s.
+
+### 次アクション
+
+- Restore Ollama health (`ollama ps`, restart daemon, or free GPU/RAM), then
+  re-run the three prompts in `examples/turtlebot_demo/scenarios.yaml` and
+  record Δpose.
+- Launch now accepts `ollama_timeout_sec` (default **120**) alongside
+  `ollama_host`.
+
+---
+
 ## 2026-04-20 — Demo-1 (turtlebot_demo) baseline, MockClient
 
 **Commit:** (initial scaffolding, pre-commit)

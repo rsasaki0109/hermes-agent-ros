@@ -1,6 +1,6 @@
 # Placeholder — filled in during T-16.
 /hermes_agent:
   ros__parameters:
-    llm_provider: "mock"   # one of: mock, anthropic, openai
+    llm_provider: "mock"   # mock | ollama
     session_id: "default"
     max_replans: 2

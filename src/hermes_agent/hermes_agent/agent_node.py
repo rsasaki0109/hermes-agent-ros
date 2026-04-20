@@ -11,7 +11,9 @@ module and is wired in by T-15.
 from __future__ import annotations
 
 import json
+import os
 import time
+from pathlib import Path
 from typing import Optional
 
 import rclpy
@@ -23,22 +25,44 @@ from rclpy.node import Node
 from hermes_msgs.action import ExecutePlan
 from hermes_msgs.msg import AgentStatus, ToolCall
 from hermes_msgs.srv import AskAgent
+from hermes_tools.registry import ToolRegistry
 
 from .llm.base import LLMClient, Turn
 from .llm.mock_client import MockClient
+from .llm.ollama_client import OllamaClient
 from .memory.short_term import ShortTermMemory
 from .memory.tool_log import ToolLog
 from .memory.types import ConversationTurn, ToolLogEntry
 
 
 class AgentNode(Node):
-    def __init__(self, llm: LLMClient,
-                 tool_specs: Optional[list[dict]] = None,
-                 memory: Optional[ShortTermMemory] = None,
-                 tool_log: Optional[ToolLog] = None) -> None:
+    def __init__(
+        self,
+        llm: Optional[LLMClient] = None,
+        tool_specs: Optional[list[dict]] = None,
+        memory: Optional[ShortTermMemory] = None,
+        tool_log: Optional[ToolLog] = None,
+        system_prompt: Optional[str] = None,
+    ) -> None:
         super().__init__('hermes_agent')
-        self._llm = llm
-        self._tool_specs = tool_specs or []
+        self.declare_parameter('llm_provider', 'mock')
+        self.declare_parameter('ollama_host', 'http://localhost:11434')
+        self.declare_parameter('ollama_model', '')
+        self.declare_parameter('ollama_temperature', 0.2)
+        self.declare_parameter('ollama_timeout_sec', 120.0)
+
+        if tool_specs is None:
+            self._tool_specs, auto_system = _load_registry_specs_and_system()
+        else:
+            self._tool_specs = tool_specs
+            auto_system = ''
+
+        if system_prompt is not None:
+            self._system_prompt = system_prompt
+        else:
+            self._system_prompt = auto_system
+
+        self._llm = llm if llm is not None else _make_llm(self)
         self._memory = memory or ShortTermMemory()
         self._tool_log = tool_log or ToolLog()
         self._cb = ReentrantCallbackGroup()
@@ -75,7 +99,7 @@ class AgentNode(Node):
         llm_resp = self._llm.chat(
             messages=messages,
             tools=self._tool_specs,
-            system='',
+            system=self._system_prompt,
         )
 
         response.reply = llm_resp.message or ''
@@ -202,7 +226,7 @@ def _spin_until_done(future, timeout_sec: float) -> None:
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    node = AgentNode(llm=MockClient())
+    node = AgentNode()
     executor = MultiThreadedExecutor()
     executor.add_node(node)
     try:
@@ -210,3 +234,46 @@ def main(args=None) -> None:
     finally:
         node.destroy_node()
         rclpy.shutdown()
+
+
+def _load_registry_specs_and_system() -> tuple[list[dict], str]:
+    """Match ExecutorNode: same tools.yaml + optional system_prompt.md."""
+    try:
+        from ament_index_python.packages import get_package_share_directory
+
+        bringup = Path(get_package_share_directory('hermes_bringup'))
+        tools_yaml = bringup / 'config' / 'tools.yaml'
+        if tools_yaml.exists():
+            registry = ToolRegistry.from_yaml(tools_yaml)
+        else:
+            registry = ToolRegistry.from_config(enabled=['topic_publisher_tool'])
+        prompt_path = bringup / 'config' / 'system_prompt.md'
+        system = (
+            prompt_path.read_text(encoding='utf-8')
+            if prompt_path.exists()
+            else ''
+        )
+        return registry.specs(), system
+    except Exception:
+        reg = ToolRegistry.from_config(enabled=['topic_publisher_tool'])
+        return reg.specs(), ''
+
+
+def _make_llm(node: Node) -> LLMClient:
+    provider = node.get_parameter('llm_provider').value
+    if provider == 'mock':
+        return MockClient()
+    if provider == 'ollama':
+        host = node.get_parameter('ollama_host').value
+        model_param = node.get_parameter('ollama_model').value
+        model = model_param or os.environ.get(
+            'HERMES_OLLAMA_MODEL', 'qwen2.5:7b-instruct')
+        temperature = float(node.get_parameter('ollama_temperature').value)
+        timeout = float(node.get_parameter('ollama_timeout_sec').value)
+        return OllamaClient(
+            host=host,
+            model=model,
+            temperature=temperature,
+            timeout_sec=timeout,
+        )
+    raise ValueError(f'unknown llm provider: {provider!r}')
