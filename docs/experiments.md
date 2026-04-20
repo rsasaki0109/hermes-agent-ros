@@ -38,15 +38,27 @@ with `HERMES_OLLAMA_MODEL=qwen2.5:3b-instruct`, `ollama_timeout_sec:=180.0`,
 - One logged manual run hit that crash on the first forward plan; subsequent
   asks returned `(executor unavailable)` because the executor process had died.
 
-### 未確認 / 要確認
+### Post-fix E2E — one session (same launch, 2026-04-21)
 
-- Full three-prompt Δpose table in a **single** run **after** the int-coercion
-  fix (re-run the same launch and record `/turtle1/pose` before/after).
+Measured `/turtle1/pose` (`ros2 topic echo ... --qos-reliability best_effort`)
+before/after each `ros2 service call /hermes/ask` with `session_id:=e2e`.
+Wall time is full service round-trip (Ollama + ExecutePlan + tool).
+
+| Step | Prompt | wall [s] | `ok` | x before → after | θ before → after | Notes |
+|------|--------|----------|------|------------------|------------------|-------|
+| 1 | 前に進んで | 7.13 | true | 5.544 → 5.826 | 0 → 0 | **Δx ≈ +0.282 m**; tool had `linear.x=0.1`, `duration_sec=2`, `rate_hz=5`, `topic=/turtle1/cmd_vel`. Plan §8 asked **≥0.3 m** — not met on this run. |
+| 2 | 止まって | 4.58 | true | 5.826 → 5.826 | 0 → 0 | Δ pose 0; zero `Twist` tool executed (`ok`). |
+| 3 | 右に回って | 4.03 | true | 5.826 → 5.826 | 0 → 0 | **`executed_calls=[]`** — model returned no tool call; turtle did not turn. |
+
+**推測:** Step 3 is a planner/model issue (multi-turn + weak 3B tool discipline),
+not an executor regression.
 
 ### 次アクション
 
-- Re-run `examples/turtlebot_demo/scenarios.yaml` prompts against Ollama and
-  append Δx/Δθ here.
+- For **Δx ≥ 0.3 m**: raise commanded `linear.x` / duration in prompt or
+  `system_prompt.md`, or use a stronger model.
+- For **turn_right**: retry with a fresh `session_id`, tune prompt, or
+  stronger model; optional **T-26** / **T-27** from `docs/plan.md`.
 - `colcon test`: **63** tests (**31** `hermes_tools` + **32** `hermes_agent`).
 
 ---
