@@ -26,14 +26,21 @@ from hermes_msgs.srv import AskAgent
 
 from .llm.base import LLMClient, Turn
 from .llm.mock_client import MockClient
+from .memory.short_term import ShortTermMemory
+from .memory.tool_log import ToolLog
+from .memory.types import ConversationTurn, ToolLogEntry
 
 
 class AgentNode(Node):
     def __init__(self, llm: LLMClient,
-                 tool_specs: Optional[list[dict]] = None) -> None:
+                 tool_specs: Optional[list[dict]] = None,
+                 memory: Optional[ShortTermMemory] = None,
+                 tool_log: Optional[ToolLog] = None) -> None:
         super().__init__('hermes_agent')
         self._llm = llm
         self._tool_specs = tool_specs or []
+        self._memory = memory or ShortTermMemory()
+        self._tool_log = tool_log or ToolLog()
         self._cb = ReentrantCallbackGroup()
 
         self._ask_srv = self.create_service(
@@ -51,10 +58,20 @@ class AgentNode(Node):
     def _handle_ask(self, request: AskAgent.Request,
                     response: AskAgent.Response) -> AskAgent.Response:
         prompt = request.prompt or ''
+        session_id = request.session_id or 'default'
         self._publish_status(AgentStatus.PLANNING, prompt=prompt)
 
-        # For v1: single-turn. History lives inside the srv request.
-        messages = [Turn(role='user', content=prompt)]
+        self._memory.append(
+            session_id,
+            ConversationTurn(role='user', content=prompt))
+
+        history = self._memory.window(session_id)
+        messages = [
+            Turn(role=t.role, content=t.content,
+                 tool_call_id=t.tool_call_id,
+                 tool_name=t.tool_name)
+            for t in history
+        ]
         llm_resp = self._llm.chat(
             messages=messages,
             tools=self._tool_specs,
@@ -65,6 +82,10 @@ class AgentNode(Node):
         response.executed_calls = []
 
         if not llm_resp.wants_tools:
+            self._memory.append(
+                session_id,
+                ConversationTurn(role='assistant',
+                                 content=response.reply))
             self._publish_status(AgentStatus.IDLE)
             response.ok = True
             return response
@@ -93,7 +114,33 @@ class AgentNode(Node):
         if notes:
             response.reply += '\n' + '\n'.join(notes)
 
+        self._record_tool_turns(session_id, llm_resp.tool_calls,
+                                result.results)
+        self._memory.append(
+            session_id,
+            ConversationTurn(role='assistant', content=response.reply))
+
         return response
+
+    def _record_tool_turns(self, session_id, tool_calls, results):
+        by_id = {r.call_id: r for r in results}
+        for call in tool_calls:
+            r = by_id.get(call.call_id)
+            if r is None:
+                continue
+            entry = ToolLogEntry(
+                call_id=call.call_id,
+                tool_name=call.tool_name,
+                args=dict(call.args),
+                ok=bool(r.ok),
+                error=r.error or '',
+            )
+            self._tool_log.append(entry)
+            self._memory.append(
+                session_id,
+                ConversationTurn(
+                    role='tool', content=r.result_json or r.error or '',
+                    tool_call_id=call.call_id, tool_name=call.tool_name))
 
     def _execute_plan(self, calls: list[ToolCall],
                       timeout_sec: float):
