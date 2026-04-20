@@ -3,8 +3,81 @@
 ROS2-native agent framework. LLM agents run as ROS2 nodes and manipulate
 topics, services, and actions as "tools".
 
-Design docs live in [`docs/`](./docs). Reference architecture: Planner /
-Executor split (see `docs/architecture.md`).
+Design docs live in [`docs/`](./docs). Deep dive: [`docs/architecture.md`](./docs/architecture.md).
+
+## Architecture diagrams
+
+Planner と Executor を分離し、**型付きの `ToolCall`** だけがロボット側に渡ります（GitHub が
+[Mermaid](https://github.blog/news-insights/product-news/github-now-supports-mermaid-diagrams/)
+を描画します。プレーンな Markdown ビューアではコードブロックのまま表示されることがあります）。
+
+**パッケージ依存（概要）:**
+
+```mermaid
+flowchart TB
+  bringup[hermes_bringup\nlaunch + config]
+  agent[hermes_agent\nAgentNode + ExecutorNode]
+  tools[hermes_tools\nToolInterface + adapters]
+  msgs[hermes_msgs\nmsg srv action]
+  bringup --> agent
+  agent --> tools
+  agent --> msgs
+  tools --> msgs
+```
+
+**ランタイム（ノードとデータの流れ・概念図）:**
+
+```mermaid
+flowchart LR
+  subgraph user["ユーザー / CLI"]
+    U[ros2 service call\n/hermes/ask]
+  end
+  subgraph planner["Planner（hermes_agent）"]
+    A[AgentNode]
+    L[LLMClient\nmock / ollama / …]
+    A --- L
+  end
+  subgraph executor["Executor（hermes_agent）"]
+    E[ExecutorNode]
+    R[ToolRegistry]
+    S[SafetyFilter]
+    E --- R
+    E --- S
+  end
+  subgraph ros["ROS 2 グラフ"]
+    T["/turtle1/cmd_vel など"]
+  end
+  U -->|AskAgent| A
+  A -->|ExecutePlan\naction| E
+  E -.->|action result| A
+  E -->|publish / call| T
+```
+
+**ワンショット質問**から **cmd_vel まで**の流れ（turtlesim デモのイメージ）:
+
+```mermaid
+sequenceDiagram
+  participant U as ユーザー
+  participant Ask as /hermes/ask
+  participant Ag as AgentNode
+  participant LLM as LLM Ollama 等
+  participant Ex as ExecutorNode
+  participant SF as SafetyFilter
+  participant Tool as topic_publisher_tool
+  participant Sim as turtlesim
+  U->>Ask: prompt 例 前に進んで
+  Ask->>Ag: AskAgent
+  Ag->>LLM: chat + tool specs
+  LLM-->>Ag: tool_calls
+  Ag->>Ex: ExecutePlan goal
+  Ex->>SF: check ToolCall
+  SF-->>Ex: OK / clip / reject
+  Ex->>Tool: run args
+  Tool->>Sim: Twist on /turtle1/cmd_vel
+  Ex-->>Ag: ToolResult
+  Ag-->>Ask: reply + executed_calls
+  Ask-->>U: AskAgent Response
+```
 
 ## Packages
 
