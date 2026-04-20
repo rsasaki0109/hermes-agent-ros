@@ -18,10 +18,12 @@ Last reviewed: 2026-04-21.
   boundary.
 - 4 tools implemented (`topic_publisher`, `topic_subscriber`,
   `service_call`, `action_client`). 1 demo (turtlesim, 3 scenarios).
-- 59 tests green under `colcon test`. Live turtlesim demo works with
-  the rule-based `MockClient`.
-- **Next job:** replace the stub `AnthropicClient` with a local-LLM
-  backend (Ollama preferred). See §5.
+- **63** tests green under `colcon test`. Live turtlesim demo works with
+  `MockClient` and with **`llm:=ollama`** (`OllamaClient`, launch wiring,
+  `docs/experiments.md` for measured runs).
+- **Next jobs (polish):** optional `OpenAICompatClient` (T-23), prompt /
+  model tuning so all three Ollama scenarios match `scenarios.yaml` (T-26),
+  optional JSON-mode fallback (T-27). Cloud `AnthropicClient` remains a stub.
 
 Build / test / run once:
 
@@ -30,7 +32,7 @@ source /opt/ros/jazzy/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 colcon test --event-handlers console_direct+ --return-code-on-test-failure
-colcon test-result --verbose                    # expect 59 tests green
+colcon test-result --verbose                    # expect 63 tests green
 ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=mock
 ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
 ```
@@ -93,7 +95,7 @@ Key paths to read first, in this order, to get the model in your head:
 | T-19 | CI workflow | `.github/workflows/ci.yml` | — |
 | T-20 | Docs | `docs/*` | — |
 
-Total: 59 tests green. See `experiments.md` for live demo records.
+Total: 63 tests green. See `experiments.md` for live demo records.
 
 ---
 
@@ -400,15 +402,16 @@ constructor flag `json_mode=True` so both paths coexist.
 
 The milestone is done when **all** of the following are true:
 
-1. `colcon test` still reports 59+ tests, 0 failures.
+1. `colcon test` still reports **63+** tests, 0 failures.
 2. `ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=ollama`
    brings up a working stack against a local Ollama daemon.
 3. `ros2 service call /hermes/ask ...` with `前に進んで` results in
    `/turtle1/cmd_vel` publishes that move the simulated turtle at
-   least 0.3 m in `x`.
-4. `docs/experiments.md` has an entry dated 2026-04-?? with the
-   model tag and the three-scenario results.
-5. `README.md` `llm:=mock` example is augmented with an
-   `llm:=ollama` example.
+   least 0.3 m in `x`. **Status:** a logged `qwen2.5:3b-instruct` run
+   achieved **~0.28 m** — treat **T-26** (prompt / model) as open if
+   you need the 0.3 m bar literally.
+4. `docs/experiments.md` has a dated entry with the model tag and
+   three-scenario results (including partial / no-tool cases).
+5. `README.md` documents both `llm:=mock` and `llm:=ollama`.
 
 That is the ship bar for v1.0.

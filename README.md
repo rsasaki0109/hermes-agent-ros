@@ -32,24 +32,32 @@ ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=mock
 ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
 ```
 
-With a local [Ollama](https://ollama.com/) daemon and a pulled tool-capable model
-(e.g. `ollama pull qwen2.5:7b-instruct`), run the same demo against the real LLM:
+With a local [Ollama](https://ollama.com/) daemon and a **tool-capable**
+instruct model, run the same demo against a real LLM. On modest GPUs,
+`qwen2.5:3b-instruct` has been used successfully for native tool calls;
+`qwen2.5:7b-instruct` is an alternative if you have headroom (cold load
+and tool latency can be high).
 
 ```bash
-export HERMES_OLLAMA_MODEL=qwen2.5:7b-instruct   # optional if you use this default
+export ROS_DOMAIN_ID=224   # use any free id <= 232; avoids DDS port errors
+# optional: export ROS_LOCALHOST_ONLY=1
+export HERMES_OLLAMA_MODEL=qwen2.5:3b-instruct
 ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=ollama
-# Slow local models: raise HTTP timeout (seconds), e.g. ollama_timeout_sec:=240.0
+# Slow models: ollama_timeout_sec:=240.0
 # turtlebot_demo defaults default_cmd_vel_topic:=/turtle1/cmd_vel so small
 # models that omit `topic` still publish to the demo topic.
 ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
 ```
 
+Measured Ollama + turtlesim behaviour (pose, timings, caveats) lives in
+[`docs/experiments.md`](./docs/experiments.md).
+
 See `examples/turtlebot_demo/README.md` for the demo.
 
 For picking up this codebase (e.g. in Cursor), start with
-`docs/plan.md` — single-file handoff covering architecture, current
-status, conventions, and the remaining Cursor-ready tasks (T-21
-through T-27 for the local-LLM milestone).
+[`docs/plan.md`](./docs/plan.md) — handoff covering architecture,
+conventions, and optional follow-ups (e.g. `OpenAICompatClient`, prompt
+tuning for all three scenarios).
 
 ## Tests
 
