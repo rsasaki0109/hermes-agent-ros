@@ -5,43 +5,49 @@ experiment, newest at the top.
 
 ---
 
-## 2026-04-21 — Ollama integration smoke (T-22 wiring), `qwen3:4b`
+## 2026-04-21 — Ollama on turtlesim (tool path + robustness fixes)
 
-**Commit:** (post `OllamaClient` + launch `llm:=ollama`; see git log)
-**LLM runtime:** Ollama HTTP at `http://127.0.0.1:11434`
-**Model tag:** `qwen3:4b` via `HERMES_OLLAMA_MODEL` (machine default; not the
-plan’s `qwen2.5:7b-instruct` pin)
+**LLM runtime:** Ollama `http://127.0.0.1:11434`  
+**Model:** `qwen2.5:3b-instruct` (pulled on this host). `llama3.2:1b` answers
+quickly but tool args are unreliable; `qwen3:4b` often stalled on `/api/chat`
+(0 bytes / 180s); `qwen2.5:7b-instruct` cold-started ~90s then tool calls
+could still hang in trials.
+
 **Stack:** `ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=ollama`
-with `ROS_DOMAIN_ID=224` to avoid cross-talk with unrelated nodes on the host.
+with `HERMES_OLLAMA_MODEL=qwen2.5:3b-instruct`, `ollama_timeout_sec:=180.0`,
+`ROS_DOMAIN_ID=224` (must be **≤232** for Fast DDS), optional
+`ROS_LOCALHOST_ONLY=1` to avoid foreign `/hermes/ask` servers on the LAN.
 
 ### 確認済み事実
 
-- `GET /api/tags` returned a model list including `qwen3:4b`.
-- `OllamaClient` unit tests (mocked HTTP) pass under `colcon test`; full suite
-  **62** tests green (`hermes_tools` 30 + `hermes_agent` 32).
-- With default client timeout **30 s**, `ros2 service call /hermes/ask ...`
-  returned `reply='Ollama error: timed out'`, `executed_calls=[]`, `ok=True`
-  (no tool call path — LLM returned an error string only).
-- Direct `curl` to `/api/chat` with the same model showed **no response body
-  within 180 s** in one trial (connection stall / inference not completing in
-  that window). **Inference:** Ollama or the loaded model was not producing
-  timely completions on this host during the measurement; not a ROS-side
-  finding.
+- `curl /api/chat` with tools: `qwen2.5:3b-instruct` returns well-formed
+  `tool_calls` for 「前に進んで」 (wall ~22s including model load on first run).
+- `turtlebot_demo` passes **`default_cmd_vel_topic:=/turtle1/cmd_vel`** into
+  the agent so small models that omit `topic` still pass SafetyFilter.
+- Duplicate node names on the default domain (e.g. two `/hermes_agent`) were
+  observed when a manual launch and pytest shared discovery; pytest now picks
+  a **random `ROS_DOMAIN_ID` in [200,230]** per session unless
+  `HERMES_TEST_ROS_DOMAIN_ID` is set, and clears `ROS_LOCALHOST_ONLY`.
+- JSON `null` for optional tool fields (e.g. `rate_hz`) no longer fails
+  validation: optional object properties equal to `null` are dropped before
+  schema checks (`hermes_tools/base.py`).
+- **Executor crash (pre-fix, reproduced):** `geometry_msgs__msg__vector3__convert_from_py`
+  assertion when the LLM emitted JSON **integers** for Vector3 components.
+  **Fix:** when assigning into an existing float64 slot, coerce `int`→`float`
+  in `_assign_fields`. Covered by `test_publish_accepts_int_components_for_float64_fields`.
+- One logged manual run hit that crash on the first forward plan; subsequent
+  asks returned `(executor unavailable)` because the executor process had died.
 
 ### 未確認 / 要確認
 
-- End-to-end turtle motion with a **live** tool call from Ollama (forward /
-  stop / turn_right) once `/api/chat` returns within timeout.
-- Repeat with `qwen2.5:7b-instruct` (or another tool-stable model) and, if
-  needed, `ollama_timeout_sec` above 120 s.
+- Full three-prompt Δpose table in a **single** run **after** the int-coercion
+  fix (re-run the same launch and record `/turtle1/pose` before/after).
 
 ### 次アクション
 
-- Restore Ollama health (`ollama ps`, restart daemon, or free GPU/RAM), then
-  re-run the three prompts in `examples/turtlebot_demo/scenarios.yaml` and
-  record Δpose.
-- Launch now accepts `ollama_timeout_sec` (default **120**) alongside
-  `ollama_host`.
+- Re-run `examples/turtlebot_demo/scenarios.yaml` prompts against Ollama and
+  append Δx/Δθ here.
+- `colcon test`: **63** tests (**31** `hermes_tools` + **32** `hermes_agent`).
 
 ---
 

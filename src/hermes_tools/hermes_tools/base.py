@@ -145,7 +145,11 @@ def _check_against_schema(value, schema: dict, path: str):
                 f'{type(value).__name__}')
     if expected == 'object':
         props = schema.get('properties', {})
-        for required in schema.get('required', []):
+        required_keys = schema.get('required', [])
+        for key in list(value.keys()):
+            if value[key] is None and key not in required_keys:
+                del value[key]
+        for required in required_keys:
             if required not in value:
                 raise ToolValidationError(
                     f'{path}: missing required key {required!r}')
@@ -179,4 +183,8 @@ def _assign_fields(msg, data: dict) -> None:
         if isinstance(value, dict) and hasattr(current, '__slots__'):
             _assign_fields(current, value)
         else:
+            if isinstance(value, int) and not isinstance(value, bool):
+                slot = getattr(msg, key)
+                if isinstance(slot, float):
+                    value = float(value)
             setattr(msg, key, value)

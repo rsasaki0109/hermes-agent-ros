@@ -54,6 +54,12 @@ def test_validate_rejects_wrong_type():
         t.validate({'text': 123})
 
 
+def test_validate_drops_null_optional_properties():
+    t = _EchoTool()
+    out = t.validate({'text': 'hi', 'count': None})
+    assert out == {'text': 'hi'}
+
+
 def test_validate_rejects_out_of_bounds():
     t = _EchoTool()
     with pytest.raises(ToolValidationError):

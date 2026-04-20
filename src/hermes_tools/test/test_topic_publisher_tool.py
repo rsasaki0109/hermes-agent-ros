@@ -64,6 +64,37 @@ def test_publish_once(ros_context):
     assert abs(received[0].linear.x - 0.3) < 1e-6
 
 
+def test_publish_accepts_int_components_for_float64_fields(ros_context):
+    """LLM JSON often uses integers for 0/1; rosidl requires floats on Vector3."""
+    node = ros_context
+    received: list[Twist] = []
+    node.create_subscription(
+        Twist, '/test/cmd_vel_int',
+        lambda msg: received.append(msg), 10)
+
+    tool = TopicPublisherTool()
+    ctx = ToolContext(ros_node=node, logger=node.get_logger())
+    args = tool.validate({
+        'topic': '/test/cmd_vel_int',
+        'msg_type': 'geometry_msgs/Twist',
+        'payload': {'linear': {'x': 1, 'y': 0, 'z': 0},
+                    'angular': {'x': 0, 'y': 0, 'z': -1}},
+    })
+    result = asyncio.run(tool.run(args, ctx))
+
+    import time as _t
+    deadline = 1.0
+    waited = 0.0
+    while not received and waited < deadline:
+        _t.sleep(0.05)
+        waited += 0.05
+
+    assert result['status'] == 'ok'
+    assert received
+    assert received[0].linear.x == 1.0
+    assert received[0].angular.z == -1.0
+
+
 def test_publish_rated(ros_context):
     node = ros_context
     received = []

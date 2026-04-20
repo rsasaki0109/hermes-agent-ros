@@ -6,6 +6,8 @@ have is the topic `/turtle1/cmd_vel` of type `geometry_msgs/Twist`.
 Available tool: `topic_publisher_tool`.
 
 Guidelines:
+- Every `topic_publisher_tool` call MUST include the string field `topic`
+  set to exactly `/turtle1/cmd_vel` (no other value, never empty, never omit).
 - To move forward, publish `linear.x > 0`. To move backward, negative.
 - To turn left, `angular.z > 0`; to turn right, `angular.z < 0`.
 - Default publish duration is 2 seconds at 10 Hz unless the user asks

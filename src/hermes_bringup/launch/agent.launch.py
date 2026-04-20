@@ -25,6 +25,10 @@ def generate_launch_description():
     ollama_timeout_arg = DeclareLaunchArgument(
         'ollama_timeout_sec', default_value='120.0',
         description='Ollama /api/chat HTTP timeout (seconds)')
+    default_cmd_vel_arg = DeclareLaunchArgument(
+        'default_cmd_vel_topic', default_value='',
+        description='If non-empty, set missing topic_publisher_tool.topic '
+                    '(use /turtle1/cmd_vel for turtlesim demo)')
 
     agent_node = Node(
         package='hermes_agent',
@@ -35,6 +39,8 @@ def generate_launch_description():
             'llm_provider': LaunchConfiguration('llm'),
             'ollama_host': LaunchConfiguration('ollama_host'),
             'ollama_timeout_sec': LaunchConfiguration('ollama_timeout_sec'),
+            'default_cmd_vel_topic': LaunchConfiguration(
+                'default_cmd_vel_topic'),
         }],
     )
 
@@ -49,6 +55,7 @@ def generate_launch_description():
         llm_arg,
         ollama_host_arg,
         ollama_timeout_arg,
+        default_cmd_vel_arg,
         executor_node,
         agent_node,
     ])

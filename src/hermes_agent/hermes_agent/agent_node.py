@@ -50,6 +50,7 @@ class AgentNode(Node):
         self.declare_parameter('ollama_model', '')
         self.declare_parameter('ollama_temperature', 0.2)
         self.declare_parameter('ollama_timeout_sec', 120.0)
+        self.declare_parameter('default_cmd_vel_topic', '')
 
         if tool_specs is None:
             self._tool_specs, auto_system = _load_registry_specs_and_system()
@@ -114,6 +115,10 @@ class AgentNode(Node):
             response.ok = True
             return response
 
+        _apply_default_cmd_vel_topic(
+            llm_resp.tool_calls,
+            self.get_parameter('default_cmd_vel_topic').value,
+        )
         calls_msgs = _to_toolcall_msgs(llm_resp.tool_calls)
 
         self._publish_status(
@@ -201,6 +206,18 @@ class AgentNode(Node):
         msg.current_call_id = current_call_id
         msg.stamp = self.get_clock().now().to_msg()
         self._status_pub.publish(msg)
+
+
+def _apply_default_cmd_vel_topic(tool_calls, default_topic: str) -> None:
+    """If set, fill missing `topic` on topic_publisher_tool (turtlesim demo)."""
+    if not default_topic:
+        return
+    for tc in tool_calls:
+        if tc.tool_name != 'topic_publisher_tool':
+            continue
+        cur = tc.args.get('topic')
+        if not cur:
+            tc.args['topic'] = default_topic
 
 
 def _to_toolcall_msgs(tool_calls) -> list[ToolCall]:
