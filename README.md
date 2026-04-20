@@ -79,6 +79,14 @@ sequenceDiagram
   Ask-->>U: AskAgent Response
 ```
 
+## Web で見る（RViz のブラウザ代替）
+
+公式 **RViz2 をそのまま Web に出す**プロジェクトは保守されていません（代替として Webviz / Foxglove が推奨される流れ）。  
+ブラウザでライブトピックを見るには **Foxglove Studio**（[studio.foxglove.dev](https://studio.foxglove.dev/) または [app.foxglove.dev](https://app.foxglove.dev/)）と **`ros-jazzy-foxglove-bridge`** の組み合わせが手軽です。
+
+- turtlesim + hermes のトピック（例: `/turtle1/pose`, `/turtle1/cmd_vel`）を **Raw Messages** / **Plot** パネルで表示可能
+- **Playwright でデモ動画**を撮る手順: [`examples/foxglove_turtlesim/README.md`](./examples/foxglove_turtlesim/README.md)
+
 ## Packages
 
 | Package | Build type | Purpose |

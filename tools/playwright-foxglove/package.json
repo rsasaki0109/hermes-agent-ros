@@ -1,0 +1,12 @@
+{
+  "name": "hermes-playwright-foxglove",
+  "private": true,
+  "description": "Record Foxglove Studio (browser) for hermes + turtlesim demos",
+  "scripts": {
+    "test": "playwright test",
+    "record": "playwright test tests/foxglove-open.spec.ts --project=chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

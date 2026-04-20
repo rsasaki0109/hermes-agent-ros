@@ -10,3 +10,10 @@ __pycache__/
 .env
 .vscode/
 .idea/
+
+# Node / Playwright (Foxglove demo recorder)
+tools/playwright-foxglove/node_modules/
+tools/playwright-foxglove/test-results/
+tools/playwright-foxglove/playwright-report/
+tools/playwright-foxglove/blob-report/
+tools/playwright-foxglove/playwright/.cache/
