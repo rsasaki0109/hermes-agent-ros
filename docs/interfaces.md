@@ -37,6 +37,11 @@ exact fields.
   `{ros_node, tf_buffer, deadline, logger}`.
 - `hermes_tools.registry.ToolRegistry` — loads `tools.yaml`, exposes
   `get(name)`, `specs()` (LLM-facing schema list).
+- `hermes_agent.memory.short_term.ShortTermMemory` — per-session ring
+  buffer of `ConversationTurn`s. `append(session_id, turn)`,
+  `window(session_id, n=None)`.
+- `hermes_agent.memory.tool_log.ToolLog` — append-only history of
+  `ToolLogEntry`. `append(entry)`, `recent(n)`, `last()`.
 
 ## Tool schemas (v1)
 

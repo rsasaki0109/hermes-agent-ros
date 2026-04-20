@@ -40,5 +40,27 @@ completes in ~23s.
 ### Deferred for follow-up
 
 - No real LLM results yet (T-07 AnthropicClient is still a stub).
-- No measurement of end-to-end latency. Add instrumented `/hermes/agent_status`
-  timestamps once T-15 (Memory) is in.
+- No measurement of end-to-end latency. Instrumented `/hermes/agent_status`
+  timestamps are available now (T-15 landed) but not yet recorded.
+
+### 2026-04-20 addendum — live hardware-free demo
+
+Ran `ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=mock` with
+turtlesim on this machine. Pose telemetry observed:
+
+| Prompt | Δx [m] | Δθ [rad] |
+|---|---|---|
+| 前に進んで | +1.32 | 0 |
+| 右に回って | 0 | -2.91 |
+| 止まって | 0 | 0 (velocities returned to 0) |
+
+The response for "前に進んで" included the surfaced clipping note
+`safety_note=linear.x clipped 1.000 -> 0.500`, confirming the trust
+boundary works end-to-end.
+
+### 2026-04-20 addendum — full tool suite
+
+After T-11/T-13/T-14 landed, tool integration coverage is: publisher,
+subscriber, service_call (std_srvs/Trigger), action_client
+(example_interfaces/Fibonacci with feedback). Total 59 tests pass via
+`colcon test` (see T-19).

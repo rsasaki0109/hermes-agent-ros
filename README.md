@@ -31,3 +31,16 @@ ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進ん�
 ```
 
 See `examples/turtlebot_demo/README.md` for the demo.
+
+## Tests
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+colcon test --event-handlers console_direct+ --return-code-on-test-failure
+colcon test-result --verbose
+```
+
+Current suite: 59 tests (30 in hermes_tools, 29 in hermes_agent) covering
+SafetyFilter, MockClient, ShortTermMemory/ToolLog, all four tool adapters
+against real rclpy, and three turtlebot_demo scenarios end-to-end.
