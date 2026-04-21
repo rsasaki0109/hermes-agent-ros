@@ -7,11 +7,11 @@ Design docs live in [`docs/`](./docs). Deep dive: [`docs/architecture.md`](./doc
 
 ## Architecture diagrams
 
-Planner と Executor を分離し、**型付きの `ToolCall`** だけがロボット側に渡ります（GitHub が
-[Mermaid](https://github.blog/news-insights/product-news/github-now-supports-mermaid-diagrams/)
-を描画します。プレーンな Markdown ビューアではコードブロックのまま表示されることがあります）。
+The planner and executor are split; only **typed `ToolCall`s** cross into the
+robot side. GitHub renders [Mermaid](https://github.blog/news-insights/product-news/github-now-supports-mermaid-diagrams/)
+in the Markdown view; plain viewers may show the code blocks as text.
 
-**パッケージ依存（概要）:**
+**Package dependency (overview):**
 
 ```mermaid
 flowchart TB
@@ -25,27 +25,27 @@ flowchart TB
   tools --> msgs
 ```
 
-**ランタイム（ノードとデータの流れ・概念図）:**
+**Runtime (nodes and data flow, conceptual):**
 
 ```mermaid
 flowchart LR
-  subgraph user["ユーザー / CLI"]
+  subgraph user["User / CLI"]
     U[ros2 service call\n/hermes/ask]
   end
-  subgraph planner["Planner（hermes_agent）"]
+  subgraph planner["Planner (hermes_agent)"]
     A[AgentNode]
     L[LLMClient\nmock / ollama / …]
     A --- L
   end
-  subgraph executor["Executor（hermes_agent）"]
+  subgraph executor["Executor (hermes_agent)"]
     E[ExecutorNode]
     R[ToolRegistry]
     S[SafetyFilter]
     E --- R
     E --- S
   end
-  subgraph ros["ROS 2 グラフ"]
-    T["/turtle1/cmd_vel など"]
+  subgraph ros["ROS 2 graph"]
+    T["/turtle1/cmd_vel, …"]
   end
   U -->|AskAgent| A
   A -->|ExecutePlan\naction| E
@@ -53,19 +53,19 @@ flowchart LR
   E -->|publish / call| T
 ```
 
-**ワンショット質問**から **cmd_vel まで**の流れ（turtlesim デモのイメージ）:
+**One-shot question → `cmd_vel`** (turtlesim demo sketch):
 
 ```mermaid
 sequenceDiagram
-  participant U as ユーザー
+  participant U as User
   participant Ask as /hermes/ask
   participant Ag as AgentNode
-  participant LLM as LLM Ollama 等
+  participant LLM as LLM (e.g. Ollama)
   participant Ex as ExecutorNode
   participant SF as SafetyFilter
   participant Tool as topic_publisher_tool
   participant Sim as turtlesim
-  U->>Ask: prompt 例 前に進んで
+  U->>Ask: prompt e.g. move forward
   Ask->>Ag: AskAgent
   Ag->>LLM: chat + tool specs
   LLM-->>Ag: tool_calls
@@ -76,16 +76,22 @@ sequenceDiagram
   Tool->>Sim: Twist on /turtle1/cmd_vel
   Ex-->>Ag: ToolResult
   Ag-->>Ask: reply + executed_calls
-  Ask-->>U: AskAgent Response
+  Ask-->>U: AskAgent response
 ```
 
-## Web で見る（RViz のブラウザ代替）
+## Web visualization (browser alternative to RViz)
 
-公式 **RViz2 をそのまま Web に出す**プロジェクトは保守されていません（代替として Webviz / Foxglove が推奨される流れ）。  
-ブラウザでライブトピックを見るには **`ros-jazzy-foxglove-bridge`**（WebSocket）を立て、クライアントとして **Foxglove Studio**（[studio.foxglove.dev](https://studio.foxglove.dev/) / [app.foxglove.dev](https://app.foxglove.dev/)）か、オープンソースの **Lichtblick**（[GitHub Pages 上の Web アプリ](https://lichtblick-suite.github.io/lichtblick/)・[ドキュメント](https://lichtblick-suite.github.io/docs/docs/connecting-to-data/frameworks/ros2)）を選ぶのが手軽です。どちらも **Foxglove WebSocket** で同じ `ws://…` に接続します。
+There is no actively maintained “RViz2 in the browser as-is” story; Webviz /
+Foxglove-style tools are the usual path. For live topics in a browser, run
+**`ros-jazzy-foxglove-bridge`** (WebSocket) and connect with **Foxglove Studio**
+([studio.foxglove.dev](https://studio.foxglove.dev/) /
+[app.foxglove.dev](https://app.foxglove.dev/)) or open-source **Lichtblick**
+([web app](https://lichtblick-suite.github.io/lichtblick/),
+[ROS 2 docs](https://lichtblick-suite.github.io/docs/docs/connecting-to-data/frameworks/ros2)).
+Both use the **Foxglove WebSocket** protocol to the same `ws://…` endpoint.
 
-- turtlesim + hermes のトピック（例: `/turtle1/pose`, `/turtle1/cmd_vel`）を **Raw Messages** / **Plot** パネルで表示可能
-- **Playwright でデモ動画**・レイアウト固定など **見栄えの詰め方**: [`examples/foxglove_turtlesim/README.md`](./examples/foxglove_turtlesim/README.md)（「デモをキラキラ」節）
+- Show turtlesim + hermes traffic (e.g. `/turtle1/pose`, `/turtle1/cmd_vel`) in **Raw Messages** / **Plot** panels.
+- **Playwright screen recordings**, saved layouts, topic tables: [`examples/foxglove_turtlesim/README.md`](./examples/foxglove_turtlesim/README.md).
 
 ## Packages
 
@@ -110,7 +116,7 @@ sequenceDiagram
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=mock
-ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
+ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: 'move forward'}"
 ```
 
 With a local [Ollama](https://ollama.com/) daemon and a **tool-capable**
@@ -127,7 +133,7 @@ ros2 launch hermes_bringup turtlebot_demo.launch.py llm:=ollama
 # Slow models: ollama_timeout_sec:=240.0
 # turtlebot_demo defaults default_cmd_vel_topic:=/turtle1/cmd_vel so small
 # models that omit `topic` still publish to the demo topic.
-ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: '前に進んで'}"
+ros2 service call /hermes/ask hermes_msgs/srv/AskAgent "{prompt: 'move forward'}"
 ```
 
 Measured Ollama + turtlesim behaviour (pose, timings, caveats) lives in
