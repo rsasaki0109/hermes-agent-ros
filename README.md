@@ -85,7 +85,7 @@ sequenceDiagram
 ブラウザでライブトピックを見るには **`ros-jazzy-foxglove-bridge`**（WebSocket）を立て、クライアントとして **Foxglove Studio**（[studio.foxglove.dev](https://studio.foxglove.dev/) / [app.foxglove.dev](https://app.foxglove.dev/)）か、オープンソースの **Lichtblick**（[GitHub Pages 上の Web アプリ](https://lichtblick-suite.github.io/lichtblick/)・[ドキュメント](https://lichtblick-suite.github.io/docs/docs/connecting-to-data/frameworks/ros2)）を選ぶのが手軽です。どちらも **Foxglove WebSocket** で同じ `ws://…` に接続します。
 
 - turtlesim + hermes のトピック（例: `/turtle1/pose`, `/turtle1/cmd_vel`）を **Raw Messages** / **Plot** パネルで表示可能
-- **Playwright でデモ動画**を撮る手順: [`examples/foxglove_turtlesim/README.md`](./examples/foxglove_turtlesim/README.md)
+- **Playwright でデモ動画**・レイアウト固定など **見栄えの詰め方**: [`examples/foxglove_turtlesim/README.md`](./examples/foxglove_turtlesim/README.md)（「デモをキラキラ」節）
 
 ## Packages
 

@@ -92,7 +92,36 @@ npm run record:lichtblick
 
 - 動画: `tools/playwright-foxglove/test-results/` 以下（`.webm`）
 - **Lichtblick 録画**は `HERMES_VIZ_BACKEND=lichtblick` または上記 `record:lichtblick`。別ポートの bridge なら `FOXGLOVE_WS_URL=ws://127.0.0.1:18765` も併用。
-- テストは初期画面を数秒表示するだけです。**パネル追加は UI が変わりやすいので手動レイアウト保存**を推奨（Foxglove: [Shareable links](https://docs.foxglove.dev/docs/visualization/shareable-links) の `layoutId` など）。
+- **録画の長さ:** `HERMES_RECORD_MS`（ミリ秒、既定 25000、最大 120000）。例: `HERMES_RECORD_MS=45000 npm run record`
+- **保存レイアウトを開く:** Studio / Lichtblick で共有リンクの `layoutId` をコピーし、`HERMES_LAYOUT_ID=そのID npm run record`（自動生成 URL に `layoutId=` が付く）。完全な共有 URL を使うなら `HERMES_STUDIO_VIEW_URL=...` で上書きでも可。
+
+### hermes + turtlesim でよく見るトピック（Foxglove / Lichtblick）
+
+| トピック | メッセージ（パッケージ） | メモ |
+| --- | --- | --- |
+| `/turtle1/pose` | `turtlesim/msg/Pose` | 位置・向き（Plot / Raw 向き） |
+| `/turtle1/cmd_vel` | `geometry_msgs/msg/Twist` | 指令速度（デモの実行結果） |
+| `/turtle1/color_sensor` | `turtlesim/msg/Color` | 色センサ |
+| `/hermes/agent_status` | `hermes_msgs/msg/AgentStatus` | プランナ側の状態通知 |
+| `/parameter_events` | `rcl_interfaces/msg/ParameterEvent` | パラメータ変更（地味だが接続確認に） |
+
+サービス `/hermes/ask` や Action `/hermes/execute_plan` は **トピックではない**ため、デバッグは `ros2 service call` / ログと併用してください。
+
+## 6. デモをキラキラさせる（レイアウト固定・長めの録画）
+
+1. ブラウザで Studio または Lichtblick を開き、**Foxglove WebSocket** で `foxglove_bridge` に接続する。  
+2. **Raw Messages** / **Plot** などで上表のトピックを並べ、見た目を整える（hermes デモなら `agent_status` と `cmd_vel` / `pose` が分かりやすい）。  
+3. レイアウトを **保存**し、[Foxglove: Shareable links](https://docs.foxglove.dev/docs/visualization/shareable-links) の手順で **`layoutId`** を URL から拾う（Lichtblick でも共有 URL に同様の ID が付くことが多い）。  
+4. 録画:
+
+```bash
+cd tools/playwright-foxglove
+HERMES_LAYOUT_ID=ここに貼り付け HERMES_RECORD_MS=45000 npm run record
+# Lichtblick なら
+HERMES_LAYOUT_ID=… HERMES_RECORD_MS=45000 npm run record:lichtblick
+```
+
+5. 亀やトピックが動いてほしい時間帯に合わせ、**その前後**で `ros2 service call /hermes/ask …` を叩くと、動画に「反応」が載りやすいです。
 
 ## 代替: Rosbridge
 
