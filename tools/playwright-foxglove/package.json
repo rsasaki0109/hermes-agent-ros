@@ -4,7 +4,8 @@
   "description": "Record Foxglove Studio (browser) for hermes + turtlesim demos",
   "scripts": {
     "test": "playwright test",
-    "record": "playwright test tests/foxglove-open.spec.ts --project=chromium"
+    "record": "playwright test tests/foxglove-open.spec.ts --project=chromium",
+    "record:lichtblick": "HERMES_VIZ_BACKEND=lichtblick playwright test tests/foxglove-open.spec.ts --project=chromium"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1"

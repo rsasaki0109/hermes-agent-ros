@@ -54,6 +54,27 @@ https://app.foxglove.dev/~/view?ds=foxglove-websocket&ds.url=ws%3A%2F%2F127.0.0.
 
 HTTPS の Studio から `ws://127.0.0.1` へ繋がらない場合は、**Foxglove デスクトップアプリ**で同じ URL を開くか、[Shareable links](https://docs.foxglove.dev/docs/visualization/shareable-links) の `openIn=desktop` を試してください。
 
+## 4b. Lichtblick（オープンソース・同じ foxglove_bridge）
+
+**Lichtblick** は Foxglove 系のオープンソース可視化ツールで、**同じ `foxglove_bridge` の WebSocket** に接続できます（[ROS 2 と Live data](https://lichtblick-suite.github.io/docs/docs/connecting-to-data/frameworks/ros2)）。
+
+### 手動
+
+1. ブラウザで [https://lichtblick-suite.github.io/lichtblick/](https://lichtblick-suite.github.io/lichtblick/) を開く  
+2. **Open connection** → **Foxglove WebSocket**  
+3. URL: `ws://127.0.0.1:8765`（ポートを変えた場合はその番号）→ 接続  
+4. パネルで `/turtle1/pose` などを表示  
+
+### ディープリンク（接続まで自動）
+
+GitHub Pages ではパス `~/view` がサーバ側 404 になるため、**トップにクエリを付けます**（Foxglove の `~/view?…` とは URL 形だけ異なります）。
+
+```text
+https://lichtblick-suite.github.io/lichtblick/?ds=foxglove-websocket&ds.url=ws%3A%2F%2F127.0.0.1%3A8765
+```
+
+**互換性:** bridge と Lichtblick のバージョンによっては接続に失敗する報告があります。その場合は [Releases](https://github.com/Lichtblick-Suite/lichtblick/releases) のデスクトップ版を試すか、両方を更新してください。
+
 ## 5. Playwright で画面録画（デモ動画）
 
 [`tools/playwright-foxglove/`](../../tools/playwright-foxglove/) に最小設定があります。
@@ -65,10 +86,13 @@ cd tools/playwright-foxglove
 npm install
 npx playwright install chromium
 npm run record
+# Lichtblick を撮る場合
+npm run record:lichtblick
 ```
 
 - 動画: `tools/playwright-foxglove/test-results/` 以下（`.webm`）
-- テストは Foxglove の初期画面を数秒表示するだけです。**パネル追加は UI が変わりやすいので手動レイアウト保存**を推奨**（Foxglove の Layout を保存し `layoutId` を URL に付与 — [Shareable links](https://docs.foxglove.dev/docs/visualization/shareable-links)）。
+- **Lichtblick 録画**は `HERMES_VIZ_BACKEND=lichtblick` または上記 `record:lichtblick`。別ポートの bridge なら `FOXGLOVE_WS_URL=ws://127.0.0.1:18765` も併用。
+- テストは初期画面を数秒表示するだけです。**パネル追加は UI が変わりやすいので手動レイアウト保存**を推奨（Foxglove: [Shareable links](https://docs.foxglove.dev/docs/visualization/shareable-links) の `layoutId` など）。
 
 ## 代替: Rosbridge
 
