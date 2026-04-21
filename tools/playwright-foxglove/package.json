@@ -5,9 +5,10 @@
   "scripts": {
     "test": "playwright test",
     "record": "playwright test tests/foxglove-open.spec.ts --project=chromium",
-    "record:lichtblick": "HERMES_VIZ_BACKEND=lichtblick playwright test tests/foxglove-open.spec.ts --project=chromium"
+    "record:lichtblick": "cross-env HERMES_VIZ_BACKEND=lichtblick playwright test tests/foxglove-open.spec.ts --project=chromium"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1"
+    "@playwright/test": "^1.49.1",
+    "cross-env": "^7.0.3"
   }
 }

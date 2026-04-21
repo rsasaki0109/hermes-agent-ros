@@ -86,7 +86,7 @@ cd tools/playwright-foxglove
 npm install
 npx playwright install chromium
 npm run record
-# Lichtblick を撮る場合
+# Lichtblick を撮る場合（`record:lichtblick` は cross-env 経由なので Windows でも同じコマンドで可）
 npm run record:lichtblick
 ```
 
